@@ -166,23 +166,35 @@ copySampleCellrangerOutput <- function(sample, input_dir, output_dir, output.typ
 
   # Only continue if 'outs' directory exists
   if (file.exists(out_dir_path)) {
-    sample_dir_multi <- file.path(input_dir, sample, "outs", "multi")
+    # Detect Cell Ranger version by checking for outs/multi/ directory
+    # Pre-v10: outs/multi/count/, outs/multi/vdj_b/, outs/multi/vdj_t/
+    # v10+:    outs/ (counts directly), outs/vdj_b/, outs/vdj_t/
+    legacy_multi <- file.path(input_dir, sample, "outs", "multi")
+    is_v10 <- !dir.exists(legacy_multi)
+
+    if (is_v10) {
+      sample_dir_count <- out_dir_path                # outs/
+      sample_dir_vdj   <- out_dir_path                # outs/vdj_b, outs/vdj_t
+    } else {
+      sample_dir_count <- file.path(legacy_multi, "count")  # outs/multi/count/
+      sample_dir_vdj   <- legacy_multi                      # outs/multi/vdj_b, outs/multi/vdj_t
+    }
     sample_dir_filt  <- file.path(input_dir, sample, "outs", "per_sample_outs", sample)
 
     target_files <- c()
     target_fhs   <- c()
 
     if (output.type == "counts") {
-      if (file.exists(file.path(sample_dir_multi, "count"))) {
-        sample_dir   <- file.path(sample_dir_multi, "count", "raw_feature_bc_matrix")
+      if (file.exists(sample_dir_count)) {
+        sample_dir   <- file.path(sample_dir_count, "raw_feature_bc_matrix")
         target_files <- list.files(sample_dir)
         target_fhs   <- paste(sample_dir, target_files, sep = "/")
       }
     }
 
     if (output.type %in% c("counts_hd5")) {
-      if (file.exists(file.path(sample_dir_multi, "count"))) {
-        target_file_hd5_raw  <- file.path(sample_dir_multi, "count", "raw_feature_bc_matrix.h5")
+      if (file.exists(sample_dir_count)) {
+        target_file_hd5_raw  <- file.path(sample_dir_count, "raw_feature_bc_matrix.h5")
         target_file_hd5_filt <- file.path(sample_dir_filt, "count", "sample_filtered_feature_bc_matrix.h5")
 
         target_files <- c("raw_feature_bc_matrix.h5", "sample_filtered_feature_bc_matrix.h5")
@@ -198,8 +210,8 @@ copySampleCellrangerOutput <- function(sample, input_dir, output_dir, output.typ
       # All contigs
       target_files1 <- c()
       target_fhs1   <- c()
-      if (file.exists(file.path(sample_dir_multi, vdj_name))) {
-        sample_dir1   <- file.path(sample_dir_multi, vdj_name)
+      if (file.exists(file.path(sample_dir_vdj, vdj_name))) {
+        sample_dir1   <- file.path(sample_dir_vdj, vdj_name)
         target_files1 <- list.files(sample_dir1)
         target_files1 <- target_files1[grep("_contig_annotations.csv|_contig.fasta$", target_files1)]
         target_fhs1   <- paste(sample_dir1, target_files1, sep = "/")
@@ -215,8 +227,22 @@ copySampleCellrangerOutput <- function(sample, input_dir, output_dir, output.typ
         target_fhs2   <- paste(sample_dir2, target_files2, sep = "/")
       }
 
-      target_files <- c(target_files1, target_files2)
-      target_fhs   <- c(target_fhs1, target_fhs2)
+      # All contigs from outs/ (all_contig.fasta, all_contig_annotations.csv)
+      target_files3 <- c()
+      target_fhs3   <- c()
+      if (file.exists(out_dir_path)) {
+        all_contig_candidates <- c("all_contig.fasta", "all_contig_annotations.csv")
+        for (ac in all_contig_candidates) {
+          ac_path <- file.path(out_dir_path, ac)
+          if (file.exists(ac_path)) {
+            target_files3 <- c(target_files3, ac)
+            target_fhs3   <- c(target_fhs3, ac_path)
+          }
+        }
+      }
+
+      target_files <- c(target_files1, target_files2, target_files3)
+      target_fhs   <- c(target_fhs1, target_fhs2, target_fhs3)
     }
 
     # Determine destination folder
