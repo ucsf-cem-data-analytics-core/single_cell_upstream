@@ -196,6 +196,9 @@ copySampleCellrangerOutput <- function(sample, input_dir, output_dir, output.typ
       if (file.exists(sample_dir_count)) {
         target_file_hd5_raw  <- file.path(sample_dir_count, "raw_feature_bc_matrix.h5")
         target_file_hd5_filt <- file.path(sample_dir_filt, "count", "sample_filtered_feature_bc_matrix.h5")
+        if (is_v10) {
+          target_file_hd5_filt <- file.path(sample_dir_filt, "sample_filtered_feature_bc_matrix.h5")
+        }
 
         target_files <- c("raw_feature_bc_matrix.h5", "sample_filtered_feature_bc_matrix.h5")
         target_fhs   <- c(target_file_hd5_raw, target_file_hd5_filt)
