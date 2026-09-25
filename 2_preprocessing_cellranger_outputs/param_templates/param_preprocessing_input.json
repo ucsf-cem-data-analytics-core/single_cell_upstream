@@ -1,0 +1,6 @@
+{
+  "counts_dir_path": "/PATH_cellranger_result/multi_counts",
+  "counts_dir_path": "/PATH_cellranger_result/multi_counts_hd5",
+  "output_dir_path": "/PATH_cellranger_result/multi_counts_filt",
+  "threads":4
+}
